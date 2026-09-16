@@ -1,0 +1,33 @@
+# fm-inbox outcome surface - live drive transcript
+
+## Full bridge flow: queue -> outcome -> ack -> poll list --json
+$ fm-inbox.sh note 'fix the sheets outcome summary Q460'
+queued 1789595352-a2S0vX
+$ fm-inbox.sh outcome 1789595352-a2S0vX 'processed: outcome surface wired, exported for the bridge'
+recorded outcome for 1789595352-a2S0vX
+$ fm-inbox.sh drain --ack 1789595352-a2S0vX
+acked 1789595352-a2S0vX
+$ fm-inbox.sh list --json
+[{"id":"1789595352-a2S0vX","state":"handled","outcome":"processed: outcome surface wired, exported for the bridge","outcome_at":"2026-09-16T21:49:12Z"}]
+
+## Note without an outcome exports null fields (bridge sees no progress yet)
+$ fm-inbox.sh note 'second note, no outcome yet'  ->  queued 1789595352-ugzjYq
+$ fm-inbox.sh list --json
+[{"id":"1789595352-ugzjYq","state":"pending","outcome":null,"outcome_at":null},{"id":"1789595352-a2S0vX","state":"handled","outcome":"processed: outcome surface wired, exported for the bridge","outcome_at":"2026-09-16T21:49:12Z"}]
+
+## Adversarial: ANSI escape + control bytes piped into outcome still export valid JSON
+recorded outcome for 1789595353-zWmnGE
+$ printf 'done \x1b[0m OK\x07\x01\x1f end' | fm-inbox.sh outcome 1789595353-zWmnGE -
+$ fm-inbox.sh list --json  (python3 json.load -> VALID)
+VALID JSON: 'done [0m OK end'
+
+## Misuse guards
+$ fm-inbox.sh list --json extra
+fm-inbox: usage: fm-inbox.sh list [--json]
+exit=1
+$ fm-inbox.sh outcome 99999999-zzzzzz text
+fm-inbox: no such note: 99999999-zzzzzz (queue one with: fm-inbox.sh note <text>...)
+exit=1
+$ fm-inbox.sh outcome 1789595352-ugzjYq '   ' (whitespace only)
+fm-inbox: refusing to record an empty outcome
+exit=1
