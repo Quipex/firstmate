@@ -154,6 +154,8 @@ case "$pid:$field:${FM_TEST_PATH_SHAPE:-hookdir}" in
   810:args=:hookdir) printf '%s\n' '/home/u/.claude/hooks/notify.sh --quiet' ;;
   810:comm=:piprefix) printf '%s\n' '/opt/pipeline/bin/runner' ;;
   810:args=:piprefix) printf '%s\n' '/opt/pipeline/bin/runner --once' ;;
+  810:comm=:posixpi) printf '%s\n' node ;;
+  810:args=:posixpi) printf '%s\n' '/opt/node_modules/pi-coding-agent/dist/bundle/cli.js' ;;
   810:ppid=:*) printf '%s\n' 1 ;;
   *:comm=:*) printf '%s\n' bash ;;
   *:args=:*) printf '%s\n' 'bash /repo/bin/fm-watch-arm.sh' ;;
@@ -166,7 +168,7 @@ SH
   # Identity may be read from an executable path, but only from whole path
   # components: anything merely living under ~/.claude, and any component that
   # merely starts with a harness name, must stay outside the harness identity.
-  for shape in hookdir piprefix; do
+  for shape in hookdir piprefix posixpi; do
     if FM_TEST_PATH_SHAPE="$shape" lib_eval "$fakebin" 'fm_harness_ancestry_pid'; then
       fail "$shape: an ordinary script path was treated as a harness process"
     fi

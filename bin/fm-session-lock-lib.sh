@@ -60,8 +60,8 @@ fm_harness_path_name() {  # <path>
 #   3. a bare interpreter (node, python) running a harness script path.
 #   4. Cursor's own structural identity, owned by bin/fm-cursor-lib.sh.
 FM_HARNESS_IS_CLAUDE=0
-fm_harness_process_matches() {  # <comm> <args>
-  local comm=$1 args=$2 base argv0 name
+fm_harness_process_matches() {  # <comm> <args> [context]
+  local comm=$1 args=$2 context=${3:-} base argv0 name
   FM_HARNESS_IS_CLAUDE=0
   base=$(basename -- "$comm")
   if printf '%s' "$base" | grep -qE "$FM_HARNESS_RE"; then
@@ -85,7 +85,8 @@ fm_harness_process_matches() {  # <comm> <args>
       # so no bare harness word exists for the anchored rules above. The
       # package-name path component is the structural identity; matching it as a
       # whole component keeps anything shorter (pipe, api) from claiming it.
-      if printf '%s' "$args" | grep -qE '(^|[/\\])pi-coding-agent([/\\]|$)'; then
+      if [ "$context" = windows ] \
+        && printf '%s' "$args" | grep -qE '(^|[/\\])pi-coding-agent([/\\]|$)'; then
         return 0
       fi
       ;;
@@ -202,7 +203,7 @@ fm_windows_ancestry_pids() {
   chain=$(fm_win_process_chain "$start_winpid") || return 1
   while IFS=$'\t' read -r pid comm args; do
     [ -n "$pid" ] || continue
-    if fm_harness_process_matches "$comm" "$args"; then
+    if fm_harness_process_matches "$comm" "$args" windows; then
       printf '%s\n' "$pid"
       printed=1
       [ "$FM_HARNESS_IS_CLAUDE" -eq 1 ] || break
@@ -227,7 +228,7 @@ fm_windows_pid_harness_alive() {  # <winpid>
   IFS=$'\t' read -r comm args <<EOF
 $rest
 EOF
-  fm_harness_process_matches "$comm" "$args"
+  fm_harness_process_matches "$comm" "$args" windows
 }
 
 fm_harness_ancestry_pids() {
