@@ -492,6 +492,18 @@ test_harness_beyond_a_gap_never_owns_the_lock
 test_competing_version_named_session_is_seen_as_live
 test_windows_npm_pi_session_is_identified
 test_windows_unrelated_processes_are_never_harnesses
-test_e2e_version_named_session_claims_the_home
-test_e2e_daemon_parented_session_claims_the_home
-test_e2e_daemon_parented_version_named_session_keeps_its_lock
+
+# MSYS `ps` cannot report -o comm/args/ppid, so these real POSIX process-tree
+# fixtures cannot exercise the POSIX walk on Windows. The deterministic unit
+# cases above cover the same identity rules; the end-to-end cases run on the
+# POSIX CI lanes where their process table is available.
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*|CYGWIN*)
+    echo "skip: POSIX ancestry E2E unavailable under MSYS"
+    ;;
+  *)
+    test_e2e_version_named_session_claims_the_home
+    test_e2e_daemon_parented_session_claims_the_home
+    test_e2e_daemon_parented_version_named_session_keeps_its_lock
+    ;;
+esac
