@@ -192,12 +192,7 @@ fm_windows_ancestry_pids() {
   if [ -n "${FM_TEST_WIN_START:-}" ]; then
     start_winpid=$FM_TEST_WIN_START
   else
-    start_winpid=$(fm_win_msys_top_winpid) || start_winpid=
-    if [ -z "$start_winpid" ]; then
-      # No MSYS ladder answered at all: fall back to this shell's own WINPID so
-      # the native walk still starts as close to this session as ps allows.
-      start_winpid=$(ps 2>/dev/null | awk -v p="$$" '$1 == p { print $4 }')
-    fi
+    start_winpid=$(fm_win_msys_top_winpid) || return 1
   fi
   case "$start_winpid" in '' | *[!0-9]*) return 1 ;; esac
   chain=$(fm_win_process_chain "$start_winpid") || return 1
