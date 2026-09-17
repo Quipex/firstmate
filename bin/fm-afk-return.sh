@@ -729,9 +729,7 @@ main() {
   . "$SCRIPT_DIR/fm-backlog-transition-lib.sh"
 
   mkdir -p "$STATE" || return 1
-  if ! fm_lock_acquire_wait "$LOCK"; then
-    return 1
-  fi
+  fm_lock_acquire_wait "$LOCK"
   trap 'fm_lock_release "$LOCK"' EXIT
   window_epoch=$(window_start_epoch)
   contract_epoch=$(gate_contract_epoch)

@@ -1104,7 +1104,7 @@ SH
   fi
   elapsed=$((SECONDS - start))
   [ "$elapsed" -lt 2 ] || fail "symlink capability failure entered the lock wait loop"
-  grep -F 'native symlink creation is unavailable' "$err" >/dev/null \
+  grep -F 'cannot create the symlink lock on this platform; operate read-only until resolved' "$err" >/dev/null \
     || fail "symlink capability failure did not report read-only guidance"
 
   if PATH="$fakebin:$PATH" bash -c '
@@ -1115,7 +1115,7 @@ SH
   ' _ "$LIB" "$state/.self-held" 2>"$err"; then
     fail "self-held lock acquisition succeeded when native symlink creation was unavailable"
   fi
-  grep -F 'native symlink creation is unavailable' "$err" >/dev/null \
+  grep -F 'cannot create the symlink lock on this platform; operate read-only until resolved' "$err" >/dev/null \
     || fail "self-held symlink capability failure did not report read-only guidance"
   pass "lock acquisition fails loudly when native symlink creation is unavailable"
 

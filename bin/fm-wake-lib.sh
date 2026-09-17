@@ -539,7 +539,10 @@ fm_lock_claim() {
 # lock acquire would fail while its wait loops forever. nativestrict instead
 # makes the claim fail loudly when the platform cannot create real links, and
 # the assignment is ignored on every other platform.
-FM_LOCK_SYMLINK_UNAVAILABLE=0
+fm_lock_symlink_unavailable() {
+  printf '%s\n' 'error: cannot create the symlink lock on this platform; operate read-only until resolved' >&2
+  exit 1
+}
 
 fm_ln_symlink() {  # <target> <link>
   MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict" ln -s "$1" "$2"
@@ -547,7 +550,6 @@ fm_ln_symlink() {  # <target> <link>
 
 fm_lock_try_create() {
   local lockdir=$1 allowed_steal_owner=${2:-} ownerdir
-  FM_LOCK_SYMLINK_UNAVAILABLE=0
   FM_LOCK_OWNER_DIR=
   ownerdir=$(fm_lock_owner_dir "$lockdir") || return 1
   if [ -e "$lockdir" ] || [ -L "$lockdir" ]; then
@@ -573,7 +575,7 @@ fm_lock_try_create() {
   else
     fm_lock_remove_stray_owner_link "$lockdir" "$ownerdir"
     if [ ! -e "$lockdir" ] && [ ! -L "$lockdir" ]; then
-      FM_LOCK_SYMLINK_UNAVAILABLE=1
+      fm_lock_symlink_unavailable
     fi
   fi
   fm_lock_discard_owner "$ownerdir"
@@ -934,7 +936,6 @@ fm_recovery_marker_reopen_announced() {
 
 fm_lock_try_acquire() {
   local lockdir=$1 pid steal cur rc steal_owner primary_owner current
-  FM_LOCK_SYMLINK_UNAVAILABLE=0
   FM_LOCK_HELD_PID=
   FM_LOCK_OWNER_DIR=
   FM_LOCK_RECOVERED_PID=
@@ -942,8 +943,6 @@ fm_lock_try_acquire() {
   if fm_lock_try_create "$lockdir"; then
     return 0
   fi
-  [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -eq 0 ] || return 2
-
   fm_current_pid current || return 1
   pid=$(cat "$lockdir/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && [ "$pid" = "$current" ]; then
@@ -959,7 +958,6 @@ fm_lock_try_acquire() {
     if fm_lock_try_create "$lockdir"; then
       return 0
     fi
-    [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -eq 0 ] || return 2
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     return 1
   fi
@@ -1029,10 +1027,6 @@ fm_lock_try_acquire() {
     FM_LOCK_RECOVERED_PID=$cur
   fi
   if [ "$rc" -ne 0 ]; then
-    if [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -ne 0 ]; then
-      fm_lock_release "$steal"
-      return 2
-    fi
     # shellcheck disable=SC2034 # Read by callers after fm_lock_try_acquire returns.
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     FM_LOCK_OWNER_DIR=
@@ -1047,10 +1041,6 @@ fm_lock_acquire_wait() {
     fm_lock_try_acquire "$lockdir"
     rc=$?
     [ "$rc" -eq 0 ] && return 0
-    if [ "$rc" -eq 2 ]; then
-      printf '%s\n' 'error: native symlink creation is unavailable; operate read-only until symlink creation works' >&2
-      return 2
-    fi
     sleep 0.1
   done
 }
@@ -1100,11 +1090,6 @@ fm_lock_acquire_wait_bounded() {
   if fm_lock_try_acquire "$lockdir"; then
     return 0
   fi
-  if [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -ne 0 ]; then
-    printf '%s\n' 'error: native symlink creation is unavailable; operate read-only until symlink creation works' >&2
-    return 2
-  fi
-
   fm_current_pid caller_pid || return 1
   # shellcheck disable=SC2016 # Positional parameters expand in the child shell.
   if fm_run_timed "$seconds" env \
@@ -1129,10 +1114,6 @@ fm_lock_acquire_wait_bounded() {
   # helper cleanup cannot manufacture a false contention advisory.
   if fm_lock_try_acquire "$lockdir"; then
     return 0
-  fi
-  if [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -ne 0 ]; then
-    printf '%s\n' 'error: native symlink creation is unavailable; operate read-only until symlink creation works' >&2
-    return 2
   fi
   if [ "$rc" -eq 124 ]; then
     owner_pid=$(cat "$lockdir/pid" 2>/dev/null || true)
