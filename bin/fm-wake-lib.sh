@@ -1130,6 +1130,10 @@ fm_lock_acquire_wait_bounded() {
   if fm_lock_try_acquire "$lockdir"; then
     return 0
   fi
+  if [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -ne 0 ]; then
+    printf '%s\n' 'error: native symlink creation is unavailable; operate read-only until symlink creation works' >&2
+    return 2
+  fi
   if [ "$rc" -eq 124 ]; then
     owner_pid=$(cat "$lockdir/pid" 2>/dev/null || true)
     case "$owner_pid" in
