@@ -1,0 +1,25 @@
+date=2026-09-17T17:05:27+02:00
+command: bash tests/fm-session-lock-ancestry.test.sh
+ok - session-lock: a version-named Claude Code session is identified from its install path and argv[0]
+ok - session-lock: a harness that is pid 1 of its own namespace is examined, not skipped
+ok - session-lock: ordinary script paths under a harness directory are not harness processes
+ok - session-lock: ownership stops at the first non-harness gap above the contiguous run
+ok - session-lock: a live version-named session holding the lock is not mistaken for a stale owner
+ok - session-lock: a Windows npm-shim pi session (node.exe pi bundle) is identified and owns its lock
+ok - session-lock: unrelated Windows node.exe processes stay outside the harness identity
+skip: POSIX ancestry E2E unavailable under MSYS
+
+command: FM_STATE_OVERRIDE=<mktemp> bash bin/fm-lock.sh; ... status
+lock acquired: harness pid 33928
+lock: held by live harness pid 33928
+
+command: bash -c . bin/fm-session-lock-lib.sh; fm_harness_ancestry_pid
+33928
+
+command: unrelated node + fm_harness_pid_alive
+spawned_pid=391711
+rejection_rc=1
+
+command: timeout 5s with fake ln failing
+error: cannot create the symlink lock on this platform; operate read-only until resolved
+failure_rc=1 (timeout would be 124)
