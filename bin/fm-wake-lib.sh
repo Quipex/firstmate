@@ -1029,7 +1029,10 @@ fm_lock_try_acquire() {
     FM_LOCK_RECOVERED_PID=$cur
   fi
   if [ "$rc" -ne 0 ]; then
-    [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -eq 0 ] || return 2
+    if [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -ne 0 ]; then
+      fm_lock_release "$steal"
+      return 2
+    fi
     # shellcheck disable=SC2034 # Read by callers after fm_lock_try_acquire returns.
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     FM_LOCK_OWNER_DIR=
