@@ -160,7 +160,7 @@ fm_win_process_chain() {  # <winpid>
 # immediately. The topmost row's WINPID is where Windows parentage becomes real
 # again, and that pid starts the native chain walk in fm_windows_ancestry_pids.
 fm_win_msys_top_winpid() {
-  local ps_list cur row hop=0 ppid winpid
+  local ps_list cur row hop=0 ppid winpid boundary=0
   ps_list=$(ps 2>/dev/null) || return 1
   cur=$$
   winpid=
@@ -169,12 +169,13 @@ fm_win_msys_top_winpid() {
     [ -n "$row" ] || break
     ppid=${row%% *}
     winpid=${row##* }
-    [ "$ppid" = "$cur" ] && break
-    case "$ppid" in 0 | 1) break ;; esac
+    case "$ppid" in
+      0 | 1) boundary=1; break ;;
+    esac
     cur=$ppid
     hop=$((hop + 1))
   done
-  [ -n "$winpid" ] || return 1
+  [ "$boundary" -eq 1 ] && [ -n "$winpid" ] || return 1
   printf '%s\n' "$winpid"
 }
 
