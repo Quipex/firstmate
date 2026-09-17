@@ -1106,7 +1106,19 @@ SH
   [ "$elapsed" -lt 2 ] || fail "symlink capability failure entered the lock wait loop"
   grep -F 'native symlink creation is unavailable' "$err" >/dev/null \
     || fail "symlink capability failure did not report read-only guidance"
+
+  if PATH="$fakebin:$PATH" bash -c '
+    . "$1"
+    mkdir -p "$2"
+    printf "%s\\n" "$$" > "$2/pid"
+    fm_lock_acquire_wait "$2"
+  ' _ "$LIB" "$state/.self-held" 2>"$err"; then
+    fail "self-held lock acquisition succeeded when native symlink creation was unavailable"
+  fi
+  grep -F 'native symlink creation is unavailable' "$err" >/dev/null \
+    || fail "self-held symlink capability failure did not report read-only guidance"
   pass "lock acquisition fails loudly when native symlink creation is unavailable"
+
 }
 
 test_msys_pid_identity_uses_proc() {

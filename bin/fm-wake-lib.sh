@@ -959,6 +959,7 @@ fm_lock_try_acquire() {
     if fm_lock_try_create "$lockdir"; then
       return 0
     fi
+    [ "$FM_LOCK_SYMLINK_UNAVAILABLE" -eq 0 ] || return 2
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     return 1
   fi
