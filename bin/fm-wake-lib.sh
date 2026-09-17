@@ -533,6 +533,16 @@ fm_lock_claim() {
   return 0
 }
 
+# Create symlink <target> <link> with native-link semantics on MSYS. MSYS's
+# default `ln -s` deep-copies a directory instead of linking it, so the atomic
+# symlink claim in fm_lock_try_create would silently become a copy and every
+# lock acquire would fail while its wait loops forever. nativestrict instead
+# makes the claim fail loudly when the platform cannot create real links, and
+# the assignment is ignored on every other platform.
+fm_ln_symlink() {  # <target> <link>
+  MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict" ln -s "$1" "$2"
+}
+
 fm_lock_try_create() {
   local lockdir=$1 allowed_steal_owner=${2:-} ownerdir
   FM_LOCK_OWNER_DIR=
@@ -545,7 +555,7 @@ fm_lock_try_create() {
     fm_lock_discard_owner "$ownerdir"
     return 1
   fi
-  if ln -s "$ownerdir" "$lockdir" 2>/dev/null && fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
+  if fm_ln_symlink "$ownerdir" "$lockdir" 2>/dev/null && fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
     if fm_lock_claim "$lockdir" "$ownerdir" "$allowed_steal_owner"; then
       FM_LOCK_OWNER_DIR=$ownerdir
       return 0
