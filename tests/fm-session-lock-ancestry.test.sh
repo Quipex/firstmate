@@ -1349,7 +1349,7 @@ test_windows_inspection_and_query_errors_never_allow_takeover() {
   pass "Windows inspection distinguishes absence from query failure and refuses uncertain takeover"
 }
 
-test_windows_native_pid_keeps_wake_locks_live() {
+test_windows_wake_liveness_respects_pid_namespaces() {
   local dir
   dir="$TMP_ROOT/windows-wake-pid"
   install_windows_process_fixture "$dir" >/dev/null
@@ -1358,12 +1358,26 @@ test_windows_native_pid_keeps_wake_locks_live() {
     . "${0%/*}/fm-wake-lib.sh"
     _FM_UNAME=MINGW64_NT
     kill() { return 1; }
-    fm_pid_alive 23040 || exit 11
-    ! fm_pid_alive 99999 || exit 12
+    lock="$STATE/collision.lock"
+    mkdir -p "$lock"
+    printf "23040\n" > "$lock/pid"
+    fm_lock_try_acquire "$lock" || exit 10
+    [ "$FM_LOCK_RECOVERED_PID" = 23040 ] || exit 11
+    fm_lock_release "$lock"
+    ! fm_pid_alive 23040 || exit 12
+    fm_session_owner_alive 23040 || exit 13
+    ! fm_session_owner_alive 99999 || exit 14
+    kill() { return 0; }
+    ! fm_session_owner_alive 99999 || exit 15
     export FM_TEST_WIN_PARTIAL=1
-    fm_pid_alive 23040 || exit 13
-  ' || fail "wake-lock liveness confused a native pid or an unavailable query with confirmed death"
-  pass "wake locks retain native Windows owners and refuse to infer death from query failures"
+    fm_session_owner_alive 23040 || exit 16
+    fm_session_owner_alive 99999 || exit 17
+    _FM_UNAME=Linux
+    fm_pid_alive 23040 && fm_session_owner_alive 23040 || exit 18
+    kill() { return 1; }
+    ! fm_pid_alive 23040 && ! fm_session_owner_alive 23040 || exit 19
+  ' || fail "wake liveness mixed PID namespaces or inferred native death from query failure"
+  pass "dead MSYS mutexes recover independently of native session-owner liveness"
 }
 
 # Run independent Windows regressions in subshells so a missing implementation
@@ -1374,7 +1388,7 @@ for windows_test in \
   test_windows_msys_boundary_and_recycled_parent \
   test_windows_identity_uses_executable_and_entrypoint_only \
   test_windows_inspection_and_query_errors_never_allow_takeover \
-  test_windows_native_pid_keeps_wake_locks_live; do
+  test_windows_wake_liveness_respects_pid_namespaces; do
   ( "$windows_test" ) || windows_failed=1
 done
 [ "$windows_failed" -eq 0 ] || exit 1

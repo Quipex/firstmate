@@ -67,17 +67,22 @@ else
 fi
 
 fm_pid_alive() {
+  local pid=$1
+  case "$pid" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "$pid" 2>/dev/null
+}
+
+fm_session_owner_alive() {
   local pid=$1 rc=0
   case "$pid" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  kill -0 "$pid" 2>/dev/null && return 0
   case "$_FM_UNAME" in
     MINGW*|MSYS*|CYGWIN*) ;;
-    *) return 1 ;;
+    *) fm_pid_alive "$pid"; return $? ;;
   esac
-  # Session holders are native WINPIDs; ordinary lock owners remain MSYS pids.
-  # An unavailable native query is not permission to steal a possibly live lock.
   _fm_wake_require_session_lock || return 0
   fm_windows_pid_exists "$pid" || rc=$?
   [ "$rc" -ne 1 ]
@@ -361,7 +366,7 @@ fm_extension_pair_owns_supervision() {  # <state> <extension-dir> <source:marker
     fm_pi_extension_loaded "$state/$marker" "$version" "$lock" "$phase" || return 1
   done
   session_pid=$(sed -n '1p' "$lock" 2>/dev/null)
-  fm_pid_alive "$session_pid"
+  fm_session_owner_alive "$session_pid"
 }
 
 # Away-mode supervision evidence. While state/.afk exists the away-mode daemon
@@ -1983,7 +1988,7 @@ fm_autoarm_midturn_healthy() {  # <state-dir> [grace]
   [ "$FM_AUTOARM_OUTCOME" = rewake ] || return 1
   lock_pid=$(sed -n '1p' "$state/.lock" 2>/dev/null || true)
   [ -n "$FM_AUTOARM_SESSION" ] && [ "$FM_AUTOARM_SESSION" = "$lock_pid" ] || return 1
-  fm_pid_alive "$lock_pid" || return 1
+  fm_session_owner_alive "$lock_pid" || return 1
   fm_recovery_marker_read "$state/.watcher-down" || return 1
   recovery=${FM_RECOVERY_MARKER_TOKEN##*:}
   [ -n "$FM_AUTOARM_RECOVERY" ] && [ "$FM_AUTOARM_RECOVERY" = "$recovery" ] || return 1
