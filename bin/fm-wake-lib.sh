@@ -67,11 +67,20 @@ else
 fi
 
 fm_pid_alive() {
-  local pid=$1
+  local pid=$1 rc=0
   case "$pid" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  kill -0 "$pid" 2>/dev/null
+  kill -0 "$pid" 2>/dev/null && return 0
+  case "$_FM_UNAME" in
+    MINGW*|MSYS*|CYGWIN*) ;;
+    *) return 1 ;;
+  esac
+  # Session holders are native WINPIDs; ordinary lock owners remain MSYS pids.
+  # An unavailable native query is not permission to steal a possibly live lock.
+  _fm_wake_require_session_lock || return 0
+  fm_windows_pid_exists "$pid" || rc=$?
+  [ "$rc" -ne 1 ]
 }
 
 fm_pid_identity() {
@@ -590,6 +599,31 @@ fm_lock_claim() {
   return 0
 }
 
+# MSYS's default ln can copy a directory instead of creating a symlink. Require
+# native links only there; POSIX retains its original command and retry path.
+fm_ln_symlink() {  # <target> <link>
+  case "$_FM_UNAME" in
+    MINGW*|MSYS*|CYGWIN*) MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict" ln -s "$1" "$2" ;;
+    *) ln -s "$1" "$2" ;;
+  esac
+}
+
+fm_lock_check_symlink_capability() {  # <private-owner-directory>
+  local ownerdir=$1 probe
+  case "$_FM_UNAME" in MINGW*|MSYS*|CYGWIN*) ;; *) return 0 ;; esac
+  probe="$ownerdir/.symlink-probe"
+  # Probe a private pathname, never the contested lock: a winner may have
+  # released the lock between ln's EEXIST and our next filesystem observation.
+  if fm_ln_symlink "$ownerdir" "$probe" 2>/dev/null && [ -L "$probe" ]; then
+    rm -f "$probe"
+    return 0
+  fi
+  rm -f "$probe" 2>/dev/null || true
+  fm_lock_discard_owner "$ownerdir"
+  printf '%s\n' 'error: cannot create native symlink locks; enable Windows Developer Mode or use a symlink-capable filesystem; operate read-only until resolved' >&2
+  exit 1
+}
+
 fm_lock_try_create() {
   local lockdir=$1 allowed_steal_owner=${2:-} ownerdir
   FM_LOCK_OWNER_DIR=
@@ -602,7 +636,7 @@ fm_lock_try_create() {
     fm_lock_discard_owner "$ownerdir"
     return 1
   fi
-  if ln -s "$ownerdir" "$lockdir" 2>/dev/null && fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
+  if fm_ln_symlink "$ownerdir" "$lockdir" 2>/dev/null && fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
     if fm_lock_claim "$lockdir" "$ownerdir" "$allowed_steal_owner"; then
       FM_LOCK_OWNER_DIR=$ownerdir
       return 0
@@ -612,6 +646,7 @@ fm_lock_try_create() {
     fi
   else
     fm_lock_remove_stray_owner_link "$lockdir" "$ownerdir"
+    fm_lock_check_symlink_capability "$ownerdir"
   fi
   fm_lock_discard_owner "$ownerdir"
   return 1
