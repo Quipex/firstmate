@@ -1380,6 +1380,50 @@ test_windows_wake_liveness_respects_pid_namespaces() {
   pass "dead MSYS mutexes recover independently of native session-owner liveness"
 }
 
+test_windows_native_session_lease_guard() {
+  local dir
+  dir="$TMP_ROOT/windows-lease"
+  install_windows_process_fixture "$dir" >/dev/null
+  windows_eval "$dir" '
+    FM_STATE_OVERRIDE="${FM_TEST_WIN_TABLE%/*}/state"
+    STATE=$FM_STATE_OVERRIDE
+    . "${0%/*}/fm-lease-lib.sh"
+    fm_lease_lock_helpers
+    _FM_UNAME=MINGW64_NT
+    FM_SUPERVISION_ACTOR=main
+    kill() { [ "${2:-}" != 23040 ] && builtin kill "$@"; }
+    printf "23040\n" > "$STATE/.lock"
+    printf "branch\t23040\t1\n" > "$STATE/.lease-task"
+    for query in readable unavailable; do
+      if [ "$query" = unavailable ]; then export FM_TEST_WIN_PARTIAL=1; fi
+      rc=0
+      ( fm_lease_guard task mutate; touch "$STATE/mutated" ) || rc=$?
+      [ "$rc" = "$FM_LEASE_REFUSE_EXIT" ] || exit 11
+      [ ! -e "$STATE/mutated" ] || exit 12
+      [ "$(cat "$STATE/.lease-task")" = "$(printf "branch\t23040\t1")" ] || exit 13
+    done
+    unset FM_TEST_WIN_PARTIAL
+    printf "99999\n" > "$STATE/.lock"
+    printf "branch\t99999\t1\n" > "$STATE/.lease-task"
+    ( fm_lease_guard task mutate; touch "$STATE/recovered"; fm_lease_guard_release ) || exit 14
+    [ -e "$STATE/recovered" ] && [ ! -e "$STATE/.lease-task" ] || exit 15
+    printf "branch\t23040\t1\n" > "$STATE/.lease-task"
+    ! fm_lease_live task || exit 16
+    _FM_UNAME=Linux
+    printf "%s\n" "$$" > "$STATE/.lock"
+    printf "branch\t%s\t1\n" "$$" > "$STATE/.lease-task"
+    fm_lease_live task || exit 17
+    rc=0
+    ( fm_lease_guard task mutate; touch "$STATE/mutated" ) || rc=$?
+    [ "$rc" = "$FM_LEASE_REFUSE_EXIT" ] && [ ! -e "$STATE/mutated" ] || exit 18
+    kill() { return 1; }
+    ! fm_lease_live task || exit 19
+    fm_lease_clear_stale task
+    [ ! -e "$STATE/.lease-task" ] || exit 20
+  ' || fail "session-bound leases allowed conflicting mutation or failed stale recovery"
+  pass "native leases refuse main mutation and preserve uncertain owners with POSIX behavior unchanged"
+}
+
 # Run independent Windows regressions in subshells so a missing implementation
 # reports every failing behavior instead of hiding all but the first failure.
 windows_failed=0
@@ -1388,7 +1432,8 @@ for windows_test in \
   test_windows_msys_boundary_and_recycled_parent \
   test_windows_identity_uses_executable_and_entrypoint_only \
   test_windows_inspection_and_query_errors_never_allow_takeover \
-  test_windows_wake_liveness_respects_pid_namespaces; do
+  test_windows_wake_liveness_respects_pid_namespaces \
+  test_windows_native_session_lease_guard; do
   ( "$windows_test" ) || windows_failed=1
 done
 [ "$windows_failed" -eq 0 ] || exit 1

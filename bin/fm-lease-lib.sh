@@ -187,10 +187,11 @@ fm_lease_live() {
   fm_lease_read "$1" || return 1
   [ -n "$FM_LEASE_ACTOR" ] || return 1
   [ -n "$FM_LEASE_PID" ] || return 1
-  kill -0 "$FM_LEASE_PID" 2>/dev/null || return 1
   lock_pid=$(head -n 1 "$STATE/.lock" 2>/dev/null || true)
   case "$lock_pid" in ''|0|1|*[!0-9]*) return 1 ;; esac
-  [ "$FM_LEASE_PID" = "$lock_pid" ]
+  [ "$FM_LEASE_PID" = "$lock_pid" ] || return 1
+  fm_lease_lock_helpers
+  fm_session_owner_alive "$FM_LEASE_PID"
 }
 
 # fm_lease_rekey_holder <old-pid> <new-pid>: rewrite every lease recorded
