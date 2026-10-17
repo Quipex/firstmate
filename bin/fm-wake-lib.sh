@@ -74,6 +74,9 @@ fm_pid_alive() {
   kill -0 "$pid" 2>/dev/null
 }
 
+# Session-lock readers use native Windows PIDs, unlike ordinary mutex owners
+# recorded from MSYS BASHPID. Unknown native liveness must retain ownership;
+# only confirmed absence permits recovery. POSIX uses fm_pid_alive unchanged.
 fm_session_owner_alive() {
   local pid=$1 rc=0
   case "$pid" in

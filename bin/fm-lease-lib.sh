@@ -30,8 +30,9 @@
 #     session-lock holder, or FM_LEASE_HOLDER_PID - see bin/fm-lease.sh), so a
 #     dead recorded pid means the supervising session died; the lease is
 #     cleared at the next claim, guard, or sweep. Liveness is the pure record
-#     test, identical in every calling context: the recorded pid is alive and
-#     IS the current state/.lock holder. So a lease left by an exited session
+#     test, identical in every calling context: the recorded pid IS the current
+#     state/.lock holder and fm_session_owner_alive (bin/fm-wake-lib.sh) retains
+#     it, including uncertain native Windows liveness. So a lease left by an exited session
 #     goes stale for every reader, whichever harness now owns the home, and an
 #     unmarked main honors a live branch lease exactly as a Pi main does. A
 #     same-session re-anchor that moves lock line 1 off a live pid
@@ -180,7 +181,7 @@ fm_lease_read() {
 }
 
 # fm_lease_live <task>: 0 iff a well-formed lease exists, its recorded pid is
-# alive, and that pid IS the current session-lock holder (the staleness
+# retained by fm_session_owner_alive, and IS the current session-lock holder (the staleness
 # contract above). The calling context never enters the verdict.
 fm_lease_live() {
   local lock_pid

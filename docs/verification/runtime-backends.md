@@ -10,10 +10,7 @@ Exact task chronology, branch names, temporary homes, local paths, process ids, 
 
 Verified on 2026-10-17 on Windows 11 build 26200, Git for Windows Bash 5.2.37, Node 24.19.0, and Pi 1.2.0.
 This evidence covers session-lock ownership under a real npm-installed Pi primary, not complete Windows backend or secondmate support.
-The Windows process access and identity boundary is owned by `bin/fm-session-lock-lib.sh`; POSIX continues using its existing `ps` and `kill` path.
-Windows ownership decisions query a fresh complete Win32 process snapshot, bridge MSYS parentage at its native boundary, and reject parents created after their children.
-An unreadable or incomplete query leaves ownership unknown and cannot authorize acquisition over a recorded owner.
-Native lock links require Windows symlink capability; contention is distinguished from missing capability using a private probe rather than the contested pathname.
+The Windows process access and identity boundary is owned by `bin/fm-session-lock-lib.sh`; acquisition refusal is owned by `bin/fm-lock.sh`, and native symlink capability handling by `bin/fm-wake-lib.sh`.
 
 Run the portable regressions on either host:
 
@@ -21,7 +18,8 @@ Run the portable regressions on either host:
 bash bin/fm-test-run.sh tests/fm-session-lock-ancestry.test.sh
 ```
 
-The suite covers native npm entrypoints, incidental-argument rejection, MSYS parent translation, recycled parent ids, refreshed ownership after process exit, native-pid wake-lock liveness, and query failures before and after the claim mutex.
+The suite covers native npm entrypoints, incidental-argument rejection, MSYS parent translation, recycled parent ids, refreshed ownership after process exit, MSYS mutex recovery despite a colliding native PID, native session-owner liveness, and query failures before and after the claim mutex.
+Its session-bound lease regression exercises conflicting main-actor mutation refusal, lease preservation during native query failure, confirmed-absent holder recovery, and unchanged POSIX liveness; `bin/fm-lease-lib.sh` owns the lease contract.
 Its POSIX executable-tree integration runs on Linux/macOS and explicitly skips on MSYS, which cannot execute those symlinked `/bin/bash` fixtures.
 `tests/fm-watcher-lock.test.sh` additionally exercises symlink capability failure and a competing lock disappearing before the next observation.
 Its POSIX signal and `ps -o` integrations likewise run on Linux/macOS, while MSYS retains its native `/proc` identity check.
