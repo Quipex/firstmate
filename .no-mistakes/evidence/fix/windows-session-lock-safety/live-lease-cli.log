@@ -1,0 +1,11 @@
+/c/Users/Quipex/.no-mistakes/worktrees/3c89e779ab2d/01M55S0AA8J5EA088BXQQRPJEK/.test-phase-tmp/fm-lab.iO7Uwu
+lock acquired: harness pid 30056
+Branch claims task:
+branch 30056 1792269880 live
+Main attempts conflicting claim:
+error: claim refused - task 'live-proof' is leased to the branch supervision actor (state/.lease-live-proof)
+main_claim_exit=6
+Lease unchanged after refused claim
+branch 30056 1792269880 live
+Branch releases; main retries:
+main 30056 1792269886 live
