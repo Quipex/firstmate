@@ -171,7 +171,7 @@ EOF
 # Only the outermost MSYS shell has a trustworthy native parent to walk from.
 fm_windows_msys_root_winpid() {  # <msys-pid>
   local current=$1 root=${FM_PROC_MSYS_PROC_ROOT:-/proc} parent winpid hop
-  for hop in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+  for ((hop = 0; hop < 16; hop++)); do
     IFS= read -r parent < "$root/$current/ppid" 2>/dev/null || return 1
     IFS= read -r winpid < "$root/$current/winpid" 2>/dev/null || return 1
     case "$parent:$winpid" in *[!0-9:]*|:*|*:) return 1 ;; esac
@@ -254,7 +254,7 @@ fm_windows_ancestry_pids() {
   fi
   case "$pid" in ''|*[!0-9]*) return 1 ;; esac
   fm_windows_process_snapshot || return 1
-  for hop in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+  for ((hop = 0; hop < 16; hop++)); do
     fm_windows_process_read "$pid" || break
     [ "$FM_WIN_PROC_START" -gt 0 ] || return 1
     if [ "$child_start" -gt 0 ] && [ "$FM_WIN_PROC_START" -gt "$child_start" ]; then
