@@ -1,0 +1,14 @@
+/c/Users/Quipex/.no-mistakes/worktrees/3c89e779ab2d/01M57C3E5HSZFBYXBC84S50S9D/.test-phase-tmp/fm-lab.yfgMU1
+Acquire disposable session lock from real Pi tool shell
+lock acquired: harness pid 14224
+Persisted native owner: 14224
+Branch claims task
+branch 14224 1792322907 live
+Main attempts lifecycle mutation
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /c/Users/Quipex/.no-mistakes/worktrees/3c89e779ab2d/01M57C3E5HSZFBYXBC84S50S9D/.test-phase-tmp/fm-lab.yfgMU1
+error: lifecycle control (fm-control) refused - task 'safety-proof' is leased to the branch supervision actor (state/.lease-safety-proof), which is handling that task right now; leave the lease alone (never remove or clear it) and retry after that actor releases it, which it does when its handling ends
+control exit=6 (expected 6)
+Sweep must preserve live native lease
+branch 14224 1792322907 live
+Branch releases lease
+Lease released; disposable lab removed by exit trap
