@@ -102,8 +102,11 @@ fm_harness_process_matches() {  # <comm> <args>
 # Each decision loads a fresh, complete snapshot: a parked hook must never keep
 # granting ownership from a table captured before its harness exited.
 # The FM_PROC_* overrides are portable-test seams; no production caller sets them.
+# Cache only the immutable OS identity. Repeated ownership checks must not fork
+# uname on POSIX; process snapshots and liveness remain uncached below.
+FM_SESSION_LOCK_PLATFORM=${_FM_UNAME:-$(uname -s 2>/dev/null || printf '%s' unknown)}
 fm_windows_process_host() {
-  case "${FM_PROC_PLATFORM_OVERRIDE:-${_FM_UNAME:-$(uname -s 2>/dev/null)}}" in
+  case "${FM_PROC_PLATFORM_OVERRIDE:-${_FM_UNAME:-$FM_SESSION_LOCK_PLATFORM}}" in
     windows|MINGW*|MSYS*|CYGWIN*) return 0 ;;
   esac
   return 1

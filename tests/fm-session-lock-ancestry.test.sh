@@ -1424,6 +1424,31 @@ test_windows_native_session_lease_guard() {
   pass "native leases refuse main mutation and preserve uncertain owners with POSIX behavior unchanged"
 }
 
+test_platform_identity_is_sampled_once_per_shell() {
+  local dir fakebin probes
+  dir="$TMP_ROOT/platform-probes"
+  fakebin=$(fm_fakebin "$dir")
+  cat > "$fakebin/uname" <<'SH'
+#!/usr/bin/env bash
+printf 'probe\n' >> "$FM_TEST_UNAME_LOG"
+printf 'Linux\n'
+SH
+  chmod +x "$fakebin/uname"
+  FM_TEST_UNAME_LOG="$dir/probes" lib_eval "$fakebin" '
+    unset FM_PROC_PLATFORM_OVERRIDE _FM_UNAME
+    for attempt in 1 2 3; do
+      if fm_windows_process_host; then exit 11; fi
+    done
+    FM_PROC_PLATFORM_OVERRIDE=windows fm_windows_process_host || exit 12
+    if FM_PROC_PLATFORM_OVERRIDE=posix fm_windows_process_host; then exit 13; fi
+  ' || fail "cached platform identity ignored a POSIX host or an explicit test override"
+  probes=$(wc -l < "$dir/probes" | tr -d '[:space:]')
+  [ "$probes" = 1 ] || fail "platform identity spawned uname $probes times, expected one source-time probe"
+  pass "platform identity is sampled once while process ownership stays freshly queried"
+}
+
+test_platform_identity_is_sampled_once_per_shell
+
 # Run independent Windows regressions in subshells so a missing implementation
 # reports every failing behavior instead of hiding all but the first failure.
 windows_failed=0
