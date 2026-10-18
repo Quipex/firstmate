@@ -1,0 +1,31 @@
+FM_TEST_BEGIN 2026-10-18T21:35:15Z tests/fm-watcher-lock.test.sh family=watcher-wake-lock expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-18T21:35:15Z tests/fm-session-lock-ancestry.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - disposable watcher refuses inherited state outside its marked lab
+ok - missing Windows symlink capability terminates acquisition with a diagnostic
+ok - a disappeared competing lock is retried, not diagnosed as missing symlink support
+ok - MSYS process identity uses compatible /proc fields
+skip: POSIX watcher-process integration requires Linux or macOS
+FM_TEST_END 2026-10-18T21:35:19Z tests/fm-watcher-lock.test.sh exit=0 duration_ms=3925 gate_skip=false
+ok - platform identity is sampled once while process ownership stays freshly queried
+ok - Windows ancestry recognizes npm Pi and ownership refreshes after its exit
+ok - Windows ancestry bridges MSYS and rejects recycled parent ids
+ok - Windows identity accepts native harnesses and npm entrypoints, not incidental arguments
+ok - Windows inspection distinguishes absence from query failure and refuses uncertain takeover
+ok - dead MSYS mutexes recover independently of native session-owner liveness
+error: mutate refused - task 'task' is leased to the branch supervision actor (state/.lease-task), which is handling that task right now; leave the lease alone (never remove or clear it) and retry after that actor releases it, which it does when its handling ends
+error: mutate refused - task 'task' is leased to the branch supervision actor (state/.lease-task), which is handling that task right now; leave the lease alone (never remove or clear it) and retry after that actor releases it, which it does when its handling ends
+error: mutate refused - task 'task' is leased to the branch supervision actor (state/.lease-task), which is handling that task right now; leave the lease alone (never remove or clear it) and retry after that actor releases it, which it does when its handling ends
+ok - native leases refuse main mutation and preserve uncertain owners with POSIX behavior unchanged
+ok - session-lock: a version-named Claude Code session is identified from its install path and argv[0]
+ok - session-lock: a harness that is pid 1 of its own namespace is examined, not skipped
+ok - session-lock: ordinary script paths under a harness directory are not harness processes
+ok - session-lock: ownership stops at the first non-harness gap above the contiguous run
+ok - session-lock: a live version-named session holding the lock is not mistaken for a stale owner
+ok - session-lock: a trusted same-session id keeps owning a recycled background chain, and nothing weaker does
+ok - session-lock: a trusted id anchors the lock on the model-loop process, anything else on the outermost pid
+skip: POSIX harness-process integration requires Linux or macOS
+FM_TEST_END 2026-10-18T21:36:09Z tests/fm-session-lock-ancestry.test.sh exit=0 duration_ms=53601 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=56057
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=2 duration_ms=57526 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-session-lock-ancestry.test.sh duration_ms=53601
+FM_TEST_SLOWEST rank=2 script=tests/fm-watcher-lock.test.sh duration_ms=3925

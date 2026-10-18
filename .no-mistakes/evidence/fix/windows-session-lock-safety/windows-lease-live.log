@@ -1,0 +1,9 @@
+/c/Users/Quipex/.no-mistakes/worktrees/3c89e779ab2d/01M58EYJX23HGJGX9NDBGYWTX5/.test-phase-tmp/fm-live-lease.J8tEQh
+lock acquired: harness pid 33560
+Session owner: 33560
+branch 33560 1792359386 live
+error: claim refused - task 'live-task' is leased to the branch supervision actor (state/.lease-live-task)
+Conflicting main claim exit=6 (expected 6)
+Live branch lease survived rejected claim and sweep unchanged
+main 33560 1792359392 live
+Main acquired after explicit branch release
