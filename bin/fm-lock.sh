@@ -9,7 +9,8 @@
 # trusted session id the anchor is CLAUDE_PID, the model-loop process, so a
 # shared transient daemon or a front-end that outlives the session never keeps
 # a dead session's lock alive. Line 1 keeps its whole-line pid format because
-# every other reader takes the first line as the pid.
+# every other reader takes the first line as the pid. On Windows/MSYS this is
+# a native Windows pid, not the MSYS pid used by ordinary mutex owners.
 #
 # The trusted id itself is recorded beside the lock in state/.lock-session, a
 # sidecar written only here and only under the claim lock: refreshed on every
@@ -36,6 +37,10 @@
 #
 # Usage: fm-lock.sh           acquire; exit 1 unless ownership is verified
 #        fm-lock.sh status    print holder and liveness; always exits 0.
+#                             On Windows, unknown means the native query failed
+#                             or the live process was not recognized as a harness;
+#                             neither permits takeover. Only confirmed absence
+#                             makes a recorded Windows owner stale.
 #                             A held lock is not proof the holder is consuming
 #                             wakes. Machine-readable lock fields live on
 #                             fm-inbox.sh ready, from the same inspect helper.
